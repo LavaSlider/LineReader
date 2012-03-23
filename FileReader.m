@@ -19,6 +19,7 @@
 	corresponding function multiple times.
  */
 @implementation FileReader
+@synthesize options = m_options;
 
 - (void)dealloc{
     [m_fileHandle release], m_fileHandle = nil;
@@ -63,7 +64,7 @@
 	Empty lines are not returned.
 	@returns Another single line on each call or nil if the file end has been reached.
  */
-- (NSString*)readLine {
+- (NSString*)readLineForwards {
 
 	if (m_totalFileLength == 0 || m_currentOffset >= m_totalFileLength) {
 		return nil;
@@ -72,6 +73,11 @@
 	NSData* newLineData = [m_lineDelimiter dataUsingEncoding:NSUTF8StringEncoding];
 	[m_fileHandle seekToFileOffset:m_currentOffset];
 	NSMutableData* currentData = [[NSMutableData alloc] init];
+	NSInteger newLineDataLength = newLineData.length;
+	NSInteger skipped = 0;
+	if( self.options & FileReaderTrimTrailingNewline ) {
+		newLineDataLength = 0;
+	}
 	BOOL shouldReadMore = YES;
 	
 	while (shouldReadMore) {
@@ -83,12 +89,15 @@
 		NSRange newLineRange = [chunk rangeOfData:newLineData];
 		if (newLineRange.location != NSNotFound) {
 			// Include the length so we can include the delimiter in the string.
-			NSRange subDataRange = NSMakeRange(0, newLineRange.location + [newLineData length]);
+			NSRange subDataRange = NSMakeRange(0, newLineRange.location + newLineDataLength);
+			if (newLineDataLength < newLineData.length) {
+				skipped = newLineData.length - newLineDataLength;
+			}
 			chunk = [chunk subdataWithRange:subDataRange];
 			shouldReadMore = NO;
 		}
 		[currentData appendData:chunk];
-		m_currentOffset += [chunk length];
+		m_currentOffset += [chunk length] + skipped;
 	}
 
 	NSString* line = [currentData stringValueWithEncoding:NSUTF8StringEncoding];
@@ -105,6 +114,7 @@
 	Empty lines are returned as well.
 	@returns Another single line on each call or nil if the file end has been reached.
  */
+// NOTE: Not fixed for FileReaderTrimTrailingNewline option!!!
 - (NSString*)readLineBackwards {
 
 	if (m_totalFileLength == 0 || (m_currentInset == 0 && m_chunkSize == 0)) {
@@ -189,6 +199,15 @@
 	return line;
 }
 
+/**
+	Reads the file forwards for backwards depending on the state
+	of the FileReaderReadBackwards flag in the FileReader options
+ */
+- (NSString*)readLine {
+	if ((self.options & FileReaderReadBackwards))
+		return [self readLineBackwards];
+	return [self readLineForwards];
+}
 
 
 
