@@ -8,6 +8,12 @@
 //  Originally written by Dave DeLong, 
 //  Source: http://stackoverflow.com/questions/3707427#3711079
 
+enum {
+	FileReaderTrimTrailingNewline	= 1 << 0,
+	FileReaderReadBackwards		= 1 << 1,
+	FileReaderReturnEmptyLines	= 1 << 2,	// Not actually implemented!!
+};
+typedef NSUInteger FileReaderOptions;
 
 @interface FileReader : NSObject {
 	
@@ -20,6 +26,7 @@
 	NSString*			m_lineDelimiter;		/**< Character for line break or page break. */
 	NSUInteger			m_chunkSize;			/**< Standard block size. */
 }
+@property (nonatomic, assign) NSUInteger options;
 
 - (id)initWithFilePath:(NSString*)filePath;
 - (NSString*)readLine;
